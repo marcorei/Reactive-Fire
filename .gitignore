@@ -25,3 +25,14 @@ proguard/
 
 # Log Files
 *.log
+
+
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+.DS_Store
+/captures
+
+
+# Fix for jdk version mismatches
+.idea/
