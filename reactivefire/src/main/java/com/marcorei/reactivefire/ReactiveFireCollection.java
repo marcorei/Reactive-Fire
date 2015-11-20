@@ -12,6 +12,7 @@ import com.firebase.client.ValueEventListener;
 
 import rx.Observable;
 import rx.Subscriber;
+import rx.functions.Func1;
 
 /**
  * Collection that wraps Firebase listener in Observables.
@@ -22,33 +23,29 @@ public class ReactiveFireCollection {
      * Get value each time data changes. Does not complete.
      * Uses {@link Query#addValueEventListener(ValueEventListener)}.
      * @param query Firebase query.
-     * @param ItemClass Item class.
-     * @param <T> Item class type.
-     * @return Items via Observable.
+     * @return DataSnapshots via Observable.
      */
-    public <T> Observable<T> getValue(final Query query, final Class<T> ItemClass) {
-        return Observable.create(new Observable.OnSubscribe<T>() {
+    public Observable<DataSnapshot> getValue(final Query query) {
+        return Observable.create(new Observable.OnSubscribe<DataSnapshot>() {
             @Override
-            public void call(Subscriber<? super T> subscriber) {
-                query.addValueEventListener(new ReactiveValueListener<>(subscriber, ItemClass, false));
+            public void call(Subscriber<? super DataSnapshot> subscriber) {
+                query.addValueEventListener(new ReactiveValueListener(subscriber, false));
             }
         });
     }
 
     /**
      * Get a value, don't wait for a sync to get data.
-     * Might return old, cached data, but faster than {@link #getSingleValue(Query, Class)}.
+     * Might return old, cached data, but faster than {@link #getSingleValue(Query)}.
      * Uses {@link Query#addValueEventListener(ValueEventListener)} but completes after the first event.
      * @param query Firebase query.
-     * @param ItemClass Item class.
-     * @param <T> Item class type.
-     * @return Items via Observable.
+     * @return DataSnapshots via Observable.
      */
-    public <T> Observable<T> getValueOnce(final Query query, final Class<T> ItemClass) {
-        return Observable.create(new Observable.OnSubscribe<T>() {
+    public Observable<DataSnapshot> getValueOnce(final Query query) {
+        return Observable.create(new Observable.OnSubscribe<DataSnapshot>() {
             @Override
-            public void call(Subscriber<? super T> subscriber) {
-                query.addValueEventListener(new ReactiveValueListener<>(subscriber, ItemClass, true));
+            public void call(Subscriber<? super DataSnapshot> subscriber) {
+                query.addValueEventListener(new ReactiveValueListener(subscriber, true));
             }
         });
     }
@@ -57,15 +54,13 @@ public class ReactiveFireCollection {
      * Get a value once with synced data.
      * Uses {@link Query#addListenerForSingleValueEvent(ValueEventListener)}.
      * @param query Firebase query.
-     * @param ItemClass Item class.
-     * @param <T> Item class type.
-     * @return Items via Observable.
+     * @return DataSnapshots via Observable.
      */
-    public <T> Observable<T> getSingleValue(final Query query, final Class<T> ItemClass) {
-        return Observable.create(new Observable.OnSubscribe<T>() {
+    public Observable<DataSnapshot> getSingleValue(final Query query) {
+        return Observable.create(new Observable.OnSubscribe<DataSnapshot>() {
             @Override
-            public void call(Subscriber<? super T> subscriber) {
-                query.addListenerForSingleValueEvent(new ReactiveValueListener<>(subscriber, ItemClass, true));
+            public void call(Subscriber<? super DataSnapshot> subscriber) {
+                query.addListenerForSingleValueEvent(new ReactiveValueListener(subscriber, true));
             }
         });
     }
@@ -111,27 +106,38 @@ public class ReactiveFireCollection {
         });
     }
 
-    private class ReactiveValueListener<T> implements ValueEventListener {
-        private Subscriber<? super T> subscriber;
-        private Class<T> ItemClass;
+    /**
+     * Marshal snapshots to typed objects.
+     * @param ItemClass Target class.
+     * @param <T> target type.
+     * @return Function e.g. for use with {@link Observable#map(Func1)}.
+     */
+    public <T> Func1<DataSnapshot, T> marshalSnapshot(final Class<T> ItemClass) {
+        return new Func1<DataSnapshot, T>() {
+            @Override
+            public T call(DataSnapshot dataSnapshot) {
+                try {
+                    return dataSnapshot.getValue(ItemClass);
+                }
+                catch(FirebaseException exception){
+                    return null;
+                }
+            }
+        };
+    }
+
+    private class ReactiveValueListener implements ValueEventListener {
+        private Subscriber<? super DataSnapshot> subscriber;
         private boolean once;
 
-        public ReactiveValueListener(Subscriber<? super T> subscriber, Class<T> ItemClass, boolean once) {
+        public ReactiveValueListener(Subscriber<? super DataSnapshot> subscriber, boolean once) {
             this.subscriber = subscriber;
-            this.ItemClass = ItemClass;
             this.once = once;
         }
 
         @Override
         public void onDataChange(DataSnapshot dataSnapshot) {
-            T value;
-            try {
-                value = dataSnapshot.getValue(ItemClass);
-            }
-            catch(FirebaseException firebaseException) {
-                value = null;
-            }
-            subscriber.onNext(value);
+            subscriber.onNext(dataSnapshot);
             if(once) {
                 subscriber.onCompleted();
             }
