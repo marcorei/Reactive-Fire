@@ -3,8 +3,17 @@
  */
 package com.marcorei.reactivefiredemo.ui;
 
+import android.app.Application;
+
+import com.firebase.client.Firebase;
+
 /**
- * TODO: add class description
+ * Reactive Fire Demo Application
  */
-public class ReactiveFireDemoApp {
+public class ReactiveFireDemoApp extends Application{
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        Firebase.setAndroidContext(this);
+    }
 }
