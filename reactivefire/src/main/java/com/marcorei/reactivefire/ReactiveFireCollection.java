@@ -3,6 +3,7 @@
  */
 package com.marcorei.reactivefire;
 
+import com.firebase.client.ChildEventListener;
 import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
@@ -18,6 +19,20 @@ import rx.functions.Func1;
  * Collection that wraps Firebase listener in Observables.
  */
 public class ReactiveFireCollection {
+
+    /**
+     * Get a snapshot of each child in or added to the provided Query.
+     * @param query Firebase query.
+     * @return DataSnapshots via Observable.
+     */
+    public Observable<DataSnapshot> getChildren(final Query query) {
+        return Observable.create(new Observable.OnSubscribe<DataSnapshot>() {
+            @Override
+            public void call(final Subscriber<? super DataSnapshot> subscriber) {
+                query.addChildEventListener(new ReactiveChildListener(subscriber));
+            }
+        });
+    }
 
     /**
      * Get value each time data changes. Does not complete.
@@ -124,6 +139,33 @@ public class ReactiveFireCollection {
                 }
             }
         };
+    }
+
+    private class ReactiveChildListener implements ChildEventListener {
+        private Subscriber<? super DataSnapshot> subscriber;
+
+        public ReactiveChildListener(Subscriber<? super DataSnapshot> subscriber) {
+            this.subscriber = subscriber;
+        }
+
+        @Override
+        public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+            subscriber.onNext(dataSnapshot);
+        }
+
+        @Override
+        public void onChildChanged(DataSnapshot dataSnapshot, String s) {}
+
+        @Override
+        public void onChildRemoved(DataSnapshot dataSnapshot) {}
+
+        @Override
+        public void onChildMoved(DataSnapshot dataSnapshot, String s) {}
+
+        @Override
+        public void onCancelled(FirebaseError firebaseError) {
+            subscriber.onError(firebaseError.toException());
+        }
     }
 
     private class ReactiveValueListener implements ValueEventListener {
