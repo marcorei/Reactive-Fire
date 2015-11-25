@@ -13,7 +13,9 @@ import com.firebase.client.ValueEventListener;
 
 import rx.Observable;
 import rx.Subscriber;
+import rx.functions.Action0;
 import rx.functions.Func1;
+import rx.subscriptions.Subscriptions;
 
 /**
  * Collection that wraps Firebase listener in Observables.
@@ -29,7 +31,14 @@ public class ReactiveFireCollection {
         return Observable.create(new Observable.OnSubscribe<DataSnapshot>() {
             @Override
             public void call(final Subscriber<? super DataSnapshot> subscriber) {
-                query.addChildEventListener(new ReactiveChildListener(subscriber));
+                final ReactiveChildListener listener = new ReactiveChildListener(subscriber);
+                query.addChildEventListener(listener);
+                subscriber.add(Subscriptions.create(new Action0() {
+                    @Override
+                    public void call() {
+                        query.removeEventListener(listener);
+                    }
+                }));
             }
         });
     }
@@ -44,7 +53,14 @@ public class ReactiveFireCollection {
         return Observable.create(new Observable.OnSubscribe<DataSnapshot>() {
             @Override
             public void call(Subscriber<? super DataSnapshot> subscriber) {
-                query.addValueEventListener(new ReactiveValueListener(subscriber, false));
+                final ReactiveValueListener listener = new ReactiveValueListener(subscriber, false);
+                query.addValueEventListener(listener);
+                subscriber.add(Subscriptions.create(new Action0() {
+                    @Override
+                    public void call() {
+                        query.removeEventListener(listener);
+                    }
+                }));
             }
         });
     }
@@ -60,7 +76,14 @@ public class ReactiveFireCollection {
         return Observable.create(new Observable.OnSubscribe<DataSnapshot>() {
             @Override
             public void call(Subscriber<? super DataSnapshot> subscriber) {
-                query.addValueEventListener(new ReactiveValueListener(subscriber, true));
+                final ReactiveValueListener listener = new ReactiveValueListener(subscriber, true);
+                query.addValueEventListener(listener);
+                subscriber.add(Subscriptions.create(new Action0() {
+                    @Override
+                    public void call() {
+                        query.removeEventListener(listener);
+                    }
+                }));
             }
         });
     }
@@ -75,7 +98,14 @@ public class ReactiveFireCollection {
         return Observable.create(new Observable.OnSubscribe<DataSnapshot>() {
             @Override
             public void call(Subscriber<? super DataSnapshot> subscriber) {
-                query.addListenerForSingleValueEvent(new ReactiveValueListener(subscriber, true));
+                final ReactiveValueListener listener = new ReactiveValueListener(subscriber, true);
+                query.addListenerForSingleValueEvent(listener);
+                subscriber.add(Subscriptions.create(new Action0() {
+                    @Override
+                    public void call() {
+                        query.removeEventListener(listener);
+                    }
+                }));
             }
         });
     }
@@ -92,6 +122,7 @@ public class ReactiveFireCollection {
             @Override
             public void call(final Subscriber<? super Void> subscriber) {
                 reference.setValue(value, new ReactiveCompletionListener(subscriber));
+                // Can't remove complete listeners.
             }
         });
     }
@@ -117,6 +148,7 @@ public class ReactiveFireCollection {
             @Override
             public void call(Subscriber<? super Void> subscriber) {
                 reference.removeValue(new ReactiveCompletionListener(subscriber));
+                // Can't remove complete listeners.
             }
         });
     }
