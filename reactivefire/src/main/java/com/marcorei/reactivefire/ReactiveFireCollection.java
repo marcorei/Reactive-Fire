@@ -117,10 +117,10 @@ public class ReactiveFireCollection {
      * @param <T> Value type.
      * @return Void Observable.
      */
-    public <T> Observable<Void> setValue(final Firebase reference, final T value) {
-        return Observable.create(new Observable.OnSubscribe<Void>() {
+    public <T> Observable<Firebase> setValue(final Firebase reference, final T value) {
+        return Observable.create(new Observable.OnSubscribe<Firebase>() {
             @Override
-            public void call(final Subscriber<? super Void> subscriber) {
+            public void call(final Subscriber<? super Firebase> subscriber) {
                 reference.setValue(value, new ReactiveCompletionListener(subscriber));
                 // Can't remove complete listeners.
             }
@@ -134,7 +134,7 @@ public class ReactiveFireCollection {
      * @param <T> Value type.
      * @return Void Observable.
      */
-    public <T> Observable<Void> pushValue(Firebase reference, T value) {
+    public <T> Observable<Firebase> pushValue(Firebase reference, T value) {
        return setValue(reference.push(), value);
     }
 
@@ -143,10 +143,10 @@ public class ReactiveFireCollection {
      * @param reference Target location.
      * @return Void Observable.
      */
-    public Observable <Void> removeValue(final Firebase reference) {
-        return Observable.create(new Observable.OnSubscribe<Void>() {
+    public Observable <Firebase> removeValue(final Firebase reference) {
+        return Observable.create(new Observable.OnSubscribe<Firebase>() {
             @Override
-            public void call(Subscriber<? super Void> subscriber) {
+            public void call(Subscriber<? super Firebase> subscriber) {
                 reference.removeValue(new ReactiveCompletionListener(subscriber));
                 // Can't remove complete listeners.
             }
@@ -224,9 +224,9 @@ public class ReactiveFireCollection {
     }
 
     private class ReactiveCompletionListener implements Firebase.CompletionListener {
-        private Subscriber<? super Void> subscriber;
+        private Subscriber<? super Firebase> subscriber;
 
-        public ReactiveCompletionListener(Subscriber<? super Void> subscriber) {
+        public ReactiveCompletionListener(Subscriber<? super Firebase> subscriber) {
             this.subscriber = subscriber;
         }
 
@@ -236,6 +236,7 @@ public class ReactiveFireCollection {
                 subscriber.onError(firebaseError.toException());
             }
             else {
+                subscriber.onNext(firebase);
                 subscriber.onCompleted();
             }
         }
