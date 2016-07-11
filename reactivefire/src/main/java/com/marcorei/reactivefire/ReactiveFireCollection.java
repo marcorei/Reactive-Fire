@@ -3,13 +3,13 @@
  */
 package com.marcorei.reactivefire;
 
-import com.firebase.client.ChildEventListener;
-import com.firebase.client.DataSnapshot;
-import com.firebase.client.Firebase;
-import com.firebase.client.FirebaseError;
-import com.firebase.client.FirebaseException;
-import com.firebase.client.Query;
-import com.firebase.client.ValueEventListener;
+import 	com.google.firebase.database.ChildEventListener;
+import 	com.google.firebase.database.DataSnapshot;
+import 	com.google.firebase.database.DatabaseReference;
+import 	com.google.firebase.database.DatabaseError;
+import 	com.google.firebase.database.DatabaseException;
+import 	com.google.firebase.database.Query;
+import 	com.google.firebase.database.ValueEventListener;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -111,16 +111,16 @@ public class ReactiveFireCollection {
     }
 
     /**
-     * Uses {@link Firebase#setValue(Object, Firebase.CompletionListener)}.
+     * Uses {@link DatabaseReference#setValue(Object, DatabaseReference.CompletionListener)}.
      * @param reference Target location.
      * @param value Value to set.
      * @param <T> Value type.
      * @return Void Observable.
      */
-    public <T> Observable<Firebase> setValue(final Firebase reference, final T value) {
-        return Observable.create(new Observable.OnSubscribe<Firebase>() {
+    public <T> Observable<DatabaseReference> setValue(final DatabaseReference reference, final T value) {
+        return Observable.create(new Observable.OnSubscribe<DatabaseReference>() {
             @Override
-            public void call(final Subscriber<? super Firebase> subscriber) {
+            public void call(final Subscriber<? super DatabaseReference> subscriber) {
                 reference.setValue(value, new ReactiveCompletionListener(subscriber));
                 // Can't remove complete listeners.
             }
@@ -128,25 +128,25 @@ public class ReactiveFireCollection {
     }
 
     /**
-     * Uses {@link Firebase#push()}, then {@link Firebase#setValue(Object, Firebase.CompletionListener)}.
+     * Uses {@link DatabaseReference#push()}, then {@link DatabaseReference#setValue(Object, DatabaseReference.CompletionListener)}.
      * @param reference Target location.
      * @param value Value to set.
      * @param <T> Value type.
      * @return Void Observable.
      */
-    public <T> Observable<Firebase> pushValue(Firebase reference, T value) {
+    public <T> Observable<DatabaseReference> pushValue(DatabaseReference reference, T value) {
        return setValue(reference.push(), value);
     }
 
     /**
-     * Uses {@link Firebase#removeValue()}.
+     * Uses {@link DatabaseReference#removeValue()}.
      * @param reference Target location.
      * @return Void Observable.
      */
-    public Observable <Firebase> removeValue(final Firebase reference) {
-        return Observable.create(new Observable.OnSubscribe<Firebase>() {
+    public Observable <DatabaseReference> removeValue(final DatabaseReference reference) {
+        return Observable.create(new Observable.OnSubscribe<DatabaseReference>() {
             @Override
-            public void call(Subscriber<? super Firebase> subscriber) {
+            public void call(Subscriber<? super DatabaseReference> subscriber) {
                 reference.removeValue(new ReactiveCompletionListener(subscriber));
                 // Can't remove complete listeners.
             }
@@ -166,7 +166,7 @@ public class ReactiveFireCollection {
                 try {
                     return dataSnapshot.getValue(ItemClass);
                 }
-                catch(FirebaseException exception){
+                catch(DatabaseException exception){
                     return null;
                 }
             }
@@ -195,7 +195,7 @@ public class ReactiveFireCollection {
         public void onChildMoved(DataSnapshot dataSnapshot, String s) {}
 
         @Override
-        public void onCancelled(FirebaseError firebaseError) {
+        public void onCancelled(DatabaseError firebaseError) {
             subscriber.onError(firebaseError.toException());
         }
     }
@@ -218,20 +218,20 @@ public class ReactiveFireCollection {
         }
 
         @Override
-        public void onCancelled(FirebaseError firebaseError) {
+        public void onCancelled(DatabaseError firebaseError) {
             subscriber.onError(firebaseError.toException());
         }
     }
 
-    private class ReactiveCompletionListener implements Firebase.CompletionListener {
-        private Subscriber<? super Firebase> subscriber;
+    private class ReactiveCompletionListener implements DatabaseReference.CompletionListener {
+        private Subscriber<? super DatabaseReference> subscriber;
 
-        public ReactiveCompletionListener(Subscriber<? super Firebase> subscriber) {
+        public ReactiveCompletionListener(Subscriber<? super DatabaseReference> subscriber) {
             this.subscriber = subscriber;
         }
 
         @Override
-        public void onComplete(FirebaseError firebaseError, Firebase firebase) {
+        public void onComplete(DatabaseError firebaseError, DatabaseReference firebase) {
             if(firebaseError != null) {
                 subscriber.onError(firebaseError.toException());
             }
